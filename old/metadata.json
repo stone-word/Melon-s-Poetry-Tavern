@@ -1,0 +1,7 @@
+{
+  "name": "Mellon's Poetry Tavern",
+  "description": "A pixel-art atmospheric tavern where AI characters and players exchange poetry.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
