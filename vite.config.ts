@@ -16,6 +16,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, (process as any).cwd(), '');
 
   return {
+    // GitHub Pages 部署路径
+    base: process.env.NODE_ENV === 'production' ? '/Melon-s-Poetry-Tavern/' : '/',
     plugins: [
       react()
     ],
