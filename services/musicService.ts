@@ -12,7 +12,7 @@ class MusicService {
 
   constructor() {
     // 创建音频元素
-    this.audio = new Audio('/music/Canon3.mp3');
+    this.audio = new Audio('./music/Canon3.mp3');
     this.audio.loop = true; // 循环播放
     this.audio.volume = this.volume;
     
