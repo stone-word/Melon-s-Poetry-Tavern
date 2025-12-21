@@ -1140,7 +1140,7 @@ export class GameEngine {
                 });
                 break;
             case Role.POET:
-                speakerName = '诗人';
+                speakerName = '诗人 王子瓜';
                 onOpenDialogue({
                     isOpen: true,
                     speakerName,
