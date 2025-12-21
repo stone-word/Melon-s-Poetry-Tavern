@@ -882,8 +882,8 @@ export class GameEngine {
 
     private updateEffects = (): void => {
         this.ripples = this.ripples.filter(ripple => {
-            ripple.r += 2;
-            ripple.a -= 0.02;
+            ripple.r += 1;
+            ripple.a -= 0.03;
             return ripple.a > 0;
         });
     };
