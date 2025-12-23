@@ -14,6 +14,7 @@ import { MapGenerator } from '../game/MapGenerator';
 import { GameState } from '../game/types';
 import ChatBubbles from './ChatBubbles';
 import metadata from '../metadata.json';
+import musicService from '../services/musicService';
 
 interface GameCanvasProps {
   onOpenDialogue: (dialogue: DialogueState) => void;
@@ -30,6 +31,7 @@ const GameCanvas = React.forwardRef<GameCanvasRef, GameCanvasProps>(({ onOpenDia
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameEngineRef = useRef<GameEngine | null>(null);
   const frameIdRef = useRef<number>(0);
+  const musicStartedRef = useRef<boolean>(false); // 追踪音乐是否已启动
   
   // 美术资源缓存
   const spritesRef = useRef<Record<string, HTMLImageElement>>({});
@@ -589,6 +591,12 @@ const GameCanvas = React.forwardRef<GameCanvasRef, GameCanvasProps>(({ onOpenDia
 
   // 处理画布点击
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    // 首次点击时启动音乐
+    if (!musicStartedRef.current) {
+      musicService.start();
+      musicStartedRef.current = true;
+    }
+    
     if (!gameEngineRef.current) return;
 
     const canvas = canvasRef.current;

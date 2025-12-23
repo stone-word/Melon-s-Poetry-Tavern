@@ -222,11 +222,16 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onClose, onSendInpu
   };
 
   // === 4. 渲染视图 ===
+  // 构建标题显示（顾客使用姓氏+称呼格式）
+  const displayName = dialogue.role === Role.CUSTOMER && customerIdentity
+    ? `顾客${customerIdentity.surname}${customerIdentity.gender === '男' ? '先生' : '女士'}`
+    : dialogue.speakerName;
+
   return (
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 w-11/12 max-w-2xl bg-slate-900/90 border-2 border-slate-600 rounded-lg p-6 shadow-2xl z-50 text-slate-100 backdrop-blur-sm">
       {/* 标题栏 */}
       <div className="flex justify-between items-start mb-2">
-        <h3 className="text-xl font-bold text-amber-400">{dialogue.speakerName}</h3>
+        <h3 className="text-xl font-bold text-amber-400">{displayName}</h3>
         <button 
           onClick={onClose}
           className="text-slate-400 hover:text-white transition-colors"
@@ -234,6 +239,15 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onClose, onSendInpu
           ✕
         </button>
       </div>
+      
+      {/* 顾客详细信息（年龄、职业、MBTI） */}
+      {dialogue.role === Role.CUSTOMER && customerIdentity && (
+        <div className="mb-2">
+          <p className="text-sm text-slate-300">
+            {customerIdentity.age}岁，{customerIdentity.occupation}，{customerIdentity.personality.split(' ')[0]}
+          </p>
+        </div>
+      )}
       
       {/* 顾客来店动机显示区域（圣诞老人不显示） */}
       {dialogue.role === Role.CUSTOMER && (

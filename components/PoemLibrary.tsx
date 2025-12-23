@@ -125,9 +125,11 @@ const PoemLibrary: React.FC<PoemLibraryProps> = ({ isOpen, onClose }) => {
   };
 
   const formatCustomerInfo = (customer: any) => {
+    const surname = customer.surname || '';
+    const title = customer.gender === '男' ? '先生' : '女士';
     const nationality = customer.isForeigner ? '外国人' : '中国人';
     const location = customer.isShanghainess ? '，上海本地人' : '';
-    return `${customer.age}岁${customer.gender}性${customer.occupation}，${nationality}${location}`;
+    return `顾客${surname}${title}，${customer.age}岁，${customer.occupation}，${nationality}${location}`;
   };
 
   if (!isOpen) return null;
@@ -255,7 +257,7 @@ const PoemLibrary: React.FC<PoemLibraryProps> = ({ isOpen, onClose }) => {
                               {formatDate(poem.timestamp)}
                             </div>
                             <div className="text-xs text-slate-500 mt-1">
-                              赠予：{poem.customer.occupation}
+                              赠予：{poem.customer.surname ? `${poem.customer.surname}${poem.customer.gender === '男' ? '先生' : '女士'}` : poem.customer.occupation}
                             </div>
                           </div>
                         ))}

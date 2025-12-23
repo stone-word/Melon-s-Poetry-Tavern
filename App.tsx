@@ -68,12 +68,12 @@ const App: React.FC = () => {
   const [showPoemLibrary, setShowPoemLibrary] = useState(false);
   
   // 音乐播放状态
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(true);
   
   // 诗人对话状态
   const [poetDialogueState, setPoetDialogueState] = useState<'initial' | 'choice' | 'listening' | 'sharing'>('initial');
 
-  // 组件卸载时停止音乐
+  // 音乐清理
   useEffect(() => {
     return () => {
       musicService.stop();
@@ -83,7 +83,7 @@ const App: React.FC = () => {
   // 切换音乐播放状态
   const toggleMusic = () => {
     musicService.toggle();
-    setIsMusicPlaying(!isMusicPlaying);
+    setIsMusicPlaying(musicService.getIsPlaying());
   };
 
   // 当前对话的NPC信息（用于距离检测）

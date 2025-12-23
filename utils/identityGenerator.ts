@@ -7,6 +7,20 @@
 
 import { CustomerIdentity, AGE_DISTRIBUTION, OCCUPATION_DISTRIBUTION, MBTI_TYPES, MOOD_TYPES } from '../types';
 
+// 中文姓氏列表（常见100个姓氏）
+const CHINESE_SURNAMES = [
+  '王', '李', '张', '刘', '陈', '杨', '黄', '赵', '周', '吴',
+  '徐', '孙', '马', '朱', '胡', '郭', '何', '林', '高', '罗',
+  '郑', '梁', '谢', '宋', '唐', '许', '韩', '冯', '邓', '曹',
+  '彭', '曾', '肖', '田', '董', '袁', '潘', '于', '蒋', '蔡',
+  '余', '杜', '叶', '程', '苏', '魏', '吕', '丁', '任', '沈',
+  '姚', '卢', '姜', '崔', '钟', '谭', '陆', '汪', '范', '金',
+  '石', '廖', '贾', '夏', '韦', '付', '方', '白', '邹', '孟',
+  '熊', '秦', '邱', '江', '尹', '薛', '闫', '段', '雷', '侯',
+  '龙', '史', '陶', '黎', '贺', '顾', '毛', '郝', '龚', '邵',
+  '万', '钱', '严', '覃', '武', '戴', '莫', '孔', '向', '汤'
+];
+
 /**
  * 生成随机顾客身份
  */
@@ -17,24 +31,28 @@ export function generateCustomerIdentity(): CustomerIdentity {
   // 2. 生成年龄 - 按照指定的概率分布
   const age = generateAge();
   
-  // 3. 生成职业 - 按照三级分类概率分布
+  // 3. 生成姓氏 - 从姓氏列表中随机选择
+  const surname = CHINESE_SURNAMES[Math.floor(Math.random() * CHINESE_SURNAMES.length)];
+  
+  // 4. 生成职业 - 按照三级分类概率分布
   const occupation = generateOccupation();
   
-  // 4. 生成性格 - 等概率随机选择
+  // 5. 生成性格 - 等概率随机选择
   const personality = generatePersonality();
   
-  // 5. 生成情绪 - 等概率随机选择
+  // 6. 生成情绪 - 等概率随机选择
   const mood = generateMood();
 
-  // 6. 判断是否外国人 - 基于职业
+  // 7. 判断是否外国人 - 基于职业
   const isForeigner = isOccupationForeign(occupation);
   
-  // 7. 判断是否上海人 - 中国人中20%概率
+  // 8. 判断是否上海人 - 中国人中20%概率
   const isShanghainess = !isForeigner && Math.random() < 0.2;
 
   return {
     age,
     gender,
+    surname,
     occupation,
     personality,
     mood,

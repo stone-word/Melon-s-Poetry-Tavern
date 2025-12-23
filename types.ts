@@ -202,6 +202,7 @@ export interface Snowflake {
 export interface CustomerIdentity {
   age: number;
   gender: '男' | '女';
+  surname: string; // 姓氏
   occupation: string; // 职业（第三级分类的具体职业名称）
   personality: string; // MBTI十六型人格（显示给玩家）
   mood: string; // 当前情绪（显示给玩家）

@@ -33,13 +33,17 @@ class MusicService {
   public start() {
     if (this.isPlaying || !this.audio) return;
 
+    // 立即设置状态，确保UI同步
+    this.isPlaying = true;
+    
     this.audio.play()
       .then(() => {
-        this.isPlaying = true;
         console.log('🎵 背景音乐已开始播放');
       })
       .catch((error) => {
         console.error('🎵 播放失败:', error);
+        // 播放失败时恢复状态
+        this.isPlaying = false;
         // 如果自动播放被阻止，等待用户交互后再播放
         if (error.name === 'NotAllowedError') {
           console.log('🎵 需要用户交互才能播放音乐');
@@ -51,7 +55,7 @@ class MusicService {
    * 停止播放背景音乐
    */
   public stop() {
-    if (!this.isPlaying || !this.audio) return;
+    if (!this.audio) return;
     
     this.audio.pause();
     this.isPlaying = false;
