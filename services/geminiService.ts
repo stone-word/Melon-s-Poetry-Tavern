@@ -8,8 +8,7 @@
 import { CustomerIdentity } from "../types";
 
 // === 1. API 配置 ===
-// 注意：在 Vite 中通过 define 注入的 process.env.API_KEY
-const apiKey = process.env.API_KEY || '';
+const apiKey = import.meta.env.VITE_DEEPSEEK_API_KEY || '';
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 
 /**
