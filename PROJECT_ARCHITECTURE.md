@@ -85,7 +85,8 @@ game/
 services/
 ├── geminiService.ts    # 🧠 AI服务 - 与Google Gemini AI交互
 ├── poetryDatabase.ts   # 📖 诗歌数据库 - 管理诗歌内容
-├── poemStorage.ts      # 💾 诗歌存储 - 本地存储管理
+├── poemStorage.ts      # 💾 诗歌存储 - 本地+云端双重存储管理
+├── supabaseClient.ts   # ☁️ Supabase客户端 - 云数据库连接配置
 └── musicService.ts     # 🎵 音乐服务 - 背景音乐播放控制
 ```
 
@@ -93,7 +94,8 @@ services/
 
 - **geminiService.ts**: 与AI对话的"翻译官"，发送请求给Gemini AI并处理响应
 - **poetryDatabase.ts**: 诗歌的"图书馆管理员"，搜索和管理诗歌数据库
-- **poemStorage.ts**: 本地存储的"档案员"，保存用户创作的诗歌记录
+- **poemStorage.ts**: 诗歌存储的"双重档案员"，管理本地存储（localStorage）和云端存储（Supabase）
+- **supabaseClient.ts**: Supabase云数据库的"连接器"，配置和初始化云端数据库客户端
 - **musicService.ts**: 背景音乐的"音响师"，控制游戏背景音乐的播放、暂停和音量
 
 ### 🛠️ 工具层 (`utils/`)
@@ -162,14 +164,21 @@ PoemCreationDialog 打开
     ↓
 用户填写标题、作者、内容
     ↓
-提交诗歌
+提交诗歌（点击"赠送诗歌"按钮）
     ↓
 geminiService 生成AI反馈
     ↓
-poemStorage 保存诗歌记录
+poemStorage 同时保存到云端（Supabase）
     ↓
 显示AI反馈给用户
+    ↓
+PoemLibrary 可查看所有本地+云端诗歌
 ```
+
+**特殊逻辑**：
+- 普通诗歌：只保存到云端数据库（Supabase）
+- 圣诞老人的礼物诗：只保存到本地存储（localStorage）
+- 图书馆显示：自动合并本地和云端诗歌，去重展示
 
 ---
 
@@ -232,19 +241,61 @@ CustomerIdentity {
 
 ## 💾 数据管理
 
-### 本地存储结构
+### 存储架构：本地+云端双重存储
 
-项目使用浏览器的localStorage来保存数据：
+项目采用**混合存储策略**，确保数据的可靠性和共享性：
+
+#### 本地存储（localStorage）
+
+用于存储圣诞老人礼物诗等特殊内容：
 
 ```
 localStorage
-├── poemRecords - 诗歌记录数组
-│   ├── id - 唯一标识
-│   ├── poem - 诗歌内容（标题、作者、正文）
-│   ├── customerIdentity - 对象NPC身份
-│   ├── conversationHistory - 对话历史
-│   ├── customerReaction - NPC反馈
-│   └── timestamp - 创建时间
+├── mellon_poem_database - 诗歌数据库
+│   ├── poems[] - 诗歌记录数组
+│   │   ├── id - 唯一标识
+│   │   ├── poem - 诗歌内容（标题、作者、正文）
+│   │   ├── customer - 对象NPC身份
+│   │   ├── conversationHistory - 对话历史
+│   │   ├── customerReaction - NPC反馈
+│   │   └── timestamp - 创建时间
+│   ├── totalCount - 诗歌总数
+│   └── lastUpdated - 最后更新时间
+```
+
+#### 云端存储（Supabase PostgreSQL）
+
+用于存储和分享玩家创作的诗歌：
+
+**数据库表结构**：`poems`
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| id | uuid | 主键，自动生成 |
+| created_at | timestamp | 创建时间 |
+| title | text | 诗歌标题 |
+| author | text | 作者名 |
+| content | text | 诗歌内容 |
+| customer_info | jsonb | 顾客身份信息 |
+| conversation_history | jsonb | 对话历史记录 |
+
+**环境配置**：
+- `VITE_SUPABASE_URL` - Supabase项目URL
+- `VITE_SUPABASE_ANON_KEY` - Supabase匿名访问密钥
+
+**云存储优势**：
+- ✅ 数据持久化：不受浏览器清理影响
+- ✅ 跨设备访问：可在任何设备查看
+- ✅ 全球诗歌库：所有玩家的诗歌汇聚一处
+- ✅ 免费额度充足：500MB可存储约100万首诗
+
+**存储策略**：
+```typescript
+// 普通诗歌：保存到云端
+await addPoemRecord(poem, customer, history, reaction, true);
+
+// 特殊诗歌（如圣诞礼物）：仅保存到本地
+await addPoemRecord(poem, customer, history, reaction, false);
 ```
 
 ### 诗歌数据库
@@ -288,6 +339,8 @@ localStorage
 **角色资源**：
 - 男性角色：3种外观变体 (man-a.png, man-b.png, man-c.png)
 - 女性角色：3种外观变体 (woman-a.png, woman-b.png, woman-c.png)
+
+**注意**：当前版本已禁用外部图片加载以避免加载错误，使用程序化生成的像素图像。
 
 ---
 
@@ -348,6 +401,7 @@ musicService.setVolume(0.5);
 4. **TypeScript** - 类型安全的JavaScript
 5. **React** - UI框架
 6. **Tailwind CSS** - 样式框架
+7. **Supabase** - 云端数据库和后端服务
 
 ### 启动项目
 
@@ -355,8 +409,10 @@ musicService.setVolume(0.5);
 # 安装依赖
 npm install
 
-# 配置API密钥（在.env.local文件中）
-GEMINI_API_KEY=your_api_key_here
+# 配置环境变量（在.env文件中）
+VITE_DEEPSEEK_API_KEY=your_deepseek_api_key
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # 启动开发服务器
 npm run dev
@@ -425,13 +481,19 @@ npm run build
 ### 常见问题
 
 **Q: AI不响应怎么办？**
-A: 检查.env.local文件中的GEMINI_API_KEY是否正确配置
+A: 检查.env文件中的VITE_DEEPSEEK_API_KEY是否正确配置
 
 **Q: 游戏卡顿怎么办？**
 A: 可能是浏览器性能问题，尝试关闭其他标签页或降低游戏画质
 
 **Q: 诗歌保存失败？**
-A: 检查浏览器是否允许localStorage，或清理浏览器缓存
+A: 检查网络连接和Supabase配置是否正确，或查看浏览器控制台错误信息
+
+**Q: 如何清除本地诗歌数据？**
+A: 在浏览器控制台执行 `localStorage.removeItem('mellon_poem_database')` 或在开发者工具 Application → Local Storage 中手动删除
+
+**Q: 云端诗歌没有显示？**
+A: 确认.env文件中的Supabase配置正确，检查网络连接，查看浏览器控制台是否有错误
 
 ### 联系方式
 
@@ -445,4 +507,31 @@ A: 检查浏览器是否允许localStorage，或清理浏览器缓存
 
 ---
 
-*最后更新：2025年12月20日*
+## 📅 更新日志
+
+### 2025年12月23日 - 云存储功能上线
+
+**新增功能：**
+- ☁️ **Supabase云数据库集成**：实现诗歌的云端存储和同步
+- 🌍 **全球诗歌图书馆**：所有玩家的诗歌汇聚在云端，可在图书馆中浏览
+- 🎅 **圣诞老人礼物系统**：特殊诗歌仅保存到本地，不上传云端
+
+**技术改进：**
+- 新增 `services/supabaseClient.ts` - Supabase客户端配置
+- 重构 `services/poemStorage.ts` - 支持本地+云端双重存储
+- 优化 `components/PoemLibrary.tsx` - 自动合并和去重本地与云端诗歌
+- 改进 `App.tsx` - 诗歌提交时立即保存到云端
+
+**Bug修复：**
+- 🐛 修复诗歌重复保存问题（普通诗歌现在只保存到云端）
+- 🐛 禁用外部图片加载，避免加载失败警告
+- 🐛 清理调试代码，移除控制台日志
+
+**数据库配置：**
+- 免费层级额度：500MB数据库 + 5GB流量/月
+- 可存储约100万首诗歌
+- PostgreSQL + RESTful API自动生成
+
+---
+
+*最后更新：2025年12月23日*

@@ -51,15 +51,26 @@ export const loadImage = (path: string): Promise<HTMLImageElement> => {
  * @returns Promise<void>
  */
 export const preloadCharacterSprites = async (): Promise<void> => {
+    // 暂时禁用外部图片加载，使用默认像素画
+    console.log('✅ 使用默认像素画（未加载外部图片）');
+    return Promise.resolve();
+    
+    /* 如需启用外部图片，取消下面代码的注释：
     const allPaths = [...MALE_SPRITES, ...FEMALE_SPRITES];
-    const promises = allPaths.map(path => loadImage(path));
+    const promises = allPaths.map(path => 
+        loadImage(path).catch(err => {
+            console.warn(`⚠️ 图片加载失败（将使用默认像素画）: ${path}`);
+            return null;
+        })
+    );
     
     try {
         await Promise.all(promises);
-        console.log('✅ All character sprites loaded successfully');
+        console.log('✅ Character sprites loading completed');
     } catch (error) {
         console.error('❌ Error loading character sprites:', error);
     }
+    */
 };
 
 /**

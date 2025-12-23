@@ -3,9 +3,11 @@
  * 诗歌存储服务 (Poem Storage Service)
  * ==============================================================================
  * 负责管理玩家创作的诗歌记录，包括顾客信息、对话历史和诗歌内容
+ * 支持本地存储（localStorage）和云存储（Supabase）
  */
 
 import { CustomerIdentity } from '../types';
+import { supabase } from './supabaseClient';
 
 // 诗歌记录接口
 export interface PoemRecord {
@@ -70,16 +72,15 @@ const savePoemDatabase = (database: PoemDatabase): boolean => {
 };
 
 /**
- * 添加新的诗歌记录
+ * 添加新的诗歌记录（同时保存到本地和云端）
  */
-export const addPoemRecord = (
+export const addPoemRecord = async (
   poem: { title: string; author: string; content: string },
   customer: CustomerIdentity,
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
-  customerReaction?: string
-): string => {
-  const database = getPoemDatabase();
-  
+  customerReaction?: string,
+  saveToCloud: boolean = true // 新增参数，默认保存到云端
+): Promise<string> => {
   const newRecord: PoemRecord = {
     id: generatePoemId(),
     timestamp: Date.now(),
@@ -92,15 +93,28 @@ export const addPoemRecord = (
     customerReaction
   };
   
-  database.poems.unshift(newRecord); // 新记录放在最前面
-  database.totalCount = database.poems.length;
-  
-  const success = savePoemDatabase(database);
-  if (success) {
-    console.log('诗歌记录已保存:', newRecord.id);
-    return newRecord.id;
+  // 根据参数决定保存位置
+  if (saveToCloud) {
+    // 保存到云端（普通诗歌）
+    try {
+      await saveToCloudInternal(newRecord);
+      return newRecord.id;
+    } catch (error) {
+      console.warn('云端保存失败:', error);
+      throw new Error('保存诗歌到云端失败');
+    }
   } else {
-    throw new Error('保存诗歌记录失败');
+    // 保存到本地（圣诞老人的诗）
+    const database = getPoemDatabase();
+    database.poems.unshift(newRecord);
+    database.totalCount = database.poems.length;
+    const localSuccess = savePoemDatabase(database);
+    
+    if (localSuccess) {
+      return newRecord.id;
+    } else {
+      throw new Error('保存诗歌记录到本地失败');
+    }
   }
 };
 
@@ -238,4 +252,93 @@ export const getStorageUsage = () => {
       recordCount: 0
     };
   }
+};
+
+// ============================================================================
+// 云存储相关函数
+// ============================================================================
+
+/**
+ * 保存诗歌到云端
+ */
+const saveToCloudInternal = async (record: PoemRecord): Promise<void> => {
+  const { error } = await supabase
+    .from('poems')
+    .insert({
+      title: record.poem.title,
+      author: record.poem.author,
+      content: record.poem.content,
+      customer_info: record.customer,
+      conversation_history: record.conversationHistory,
+    });
+
+  if (error) {
+    throw error;
+  }
+};
+
+/**
+ * 从云端获取所有诗歌（全球玩家的诗歌）
+ */
+export const getAllPoemsFromCloud = async (): Promise<PoemRecord[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('poems')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    // 转换为本地格式
+    return (data || []).map(item => ({
+      id: `cloud_${item.id}`,
+      timestamp: new Date(item.created_at).getTime(),
+      poem: {
+        title: item.title,
+        author: item.author,
+        content: item.content,
+      },
+      customer: item.customer_info,
+      conversationHistory: item.conversation_history,
+    }));
+  } catch (error) {
+    console.error('从云端获取诗歌失败:', error);
+    return [];
+  }
+};
+
+/**
+ * 搜索云端诗歌
+ */
+export const searchCloudPoems = async (query: string): Promise<PoemRecord[]> => {
+  try {
+    const lowerQuery = query.toLowerCase();
+    
+    // 获取所有诗歌并在客户端过滤（简单实现）
+    const allPoems = await getAllPoemsFromCloud();
+    
+    return allPoems.filter(record => {
+      return (
+        record.poem.title.toLowerCase().includes(lowerQuery) ||
+        record.poem.content.toLowerCase().includes(lowerQuery) ||
+        record.poem.author.toLowerCase().includes(lowerQuery)
+      );
+    });
+  } catch (error) {
+    console.error('搜索云端诗歌失败:', error);
+    return [];
+  }
+};
+
+/**
+ * 检查圣诞礼物诗歌是否已存在
+ */
+export const hasSantaGiftPoem = (): boolean => {
+  const database = getPoemDatabase();
+  return database.poems.some(poem => 
+    poem.poem.title === '给你的圣诞礼物' && 
+    poem.poem.author === '你的圣诞老人'
+  );
 };

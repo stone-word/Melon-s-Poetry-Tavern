@@ -26,6 +26,7 @@ const PoemLibrary: React.FC<PoemLibraryProps> = ({ isOpen, onClose }) => {
   const [selectedPoem, setSelectedPoem] = useState<PoemStorage.PoemRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // 加载诗歌数据
   useEffect(() => {
@@ -35,10 +36,34 @@ const PoemLibrary: React.FC<PoemLibraryProps> = ({ isOpen, onClose }) => {
     }
   }, [isOpen]);
 
-  const loadPoems = () => {
-    const poems = PoemStorage.getAllPoemRecords();
-    setAllPoems(poems);
-    groupPoemsByAuthor(poems);
+  const loadPoems = async () => {
+    setIsLoading(true);
+    try {
+      // 同时获取本地和云端的诗歌
+      const localPoems = PoemStorage.getAllPoemRecords();
+      const cloudPoems = await PoemStorage.getAllPoemsFromCloud();
+      
+      // 合并并去重（以id为准，本地优先）
+      const allPoemsMap = new Map<string, PoemStorage.PoemRecord>();
+      
+      // 先添加云端诗歌
+      cloudPoems.forEach(poem => {
+        allPoemsMap.set(poem.id, poem);
+      });
+      
+      // 再添加本地诗歌（覆盖同id的云端诗歌）
+      localPoems.forEach(poem => {
+        allPoemsMap.set(poem.id, poem);
+      });
+      
+      const mergedPoems = Array.from(allPoemsMap.values());
+      setAllPoems(mergedPoems);
+      groupPoemsByAuthor(mergedPoems);
+    } catch (error) {
+      console.error('加载诗歌失败:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const loadStats = () => {
@@ -70,12 +95,19 @@ const PoemLibrary: React.FC<PoemLibraryProps> = ({ isOpen, onClose }) => {
     setPoetGroups(poetGroups);
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (searchQuery.trim()) {
-      const results = PoemStorage.searchPoemRecords(searchQuery);
-      groupPoemsByAuthor(results);
+      setIsLoading(true);
+      try {
+        const results = await PoemStorage.searchCloudPoems(searchQuery);
+        groupPoemsByAuthor(results);
+      } catch (error) {
+        console.error('搜索失败:', error);
+      } finally {
+        setIsLoading(false);
+      }
     } else {
-      groupPoemsByAuthor(allPoems);
+      await loadPoems();
     }
   };
 
@@ -134,7 +166,7 @@ const PoemLibrary: React.FC<PoemLibraryProps> = ({ isOpen, onClose }) => {
             {/* 标题和搜索 */}
             <div className="p-4 border-b border-slate-600">
               <div className="flex justify-between items-center mb-3">
-                <h2 className="text-xl font-bold text-amber-400">诗歌图书馆</h2>
+                <h2 className="text-xl font-bold text-amber-400">诗歌图书馆 🌍</h2>
                 <button 
                   onClick={onClose}
                   className="text-slate-400 hover:text-white transition-colors text-xl"
@@ -146,7 +178,7 @@ const PoemLibrary: React.FC<PoemLibraryProps> = ({ isOpen, onClose }) => {
               {/* 统计信息 */}
               {stats && (
                 <div className="text-sm text-slate-400 mb-3">
-                  共收录 {stats.totalPoems} 首诗歌，{poetGroups.length} 位诗人
+                  共收录 {poetGroups.length} 位诗人的作品
                 </div>
               )}
               
@@ -162,18 +194,24 @@ const PoemLibrary: React.FC<PoemLibraryProps> = ({ isOpen, onClose }) => {
                 />
                 <button
                   onClick={handleSearch}
-                  className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                  disabled={isLoading}
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-sm transition-colors disabled:opacity-50"
                 >
-                  搜索
+                  {isLoading ? '...' : '搜索'}
                 </button>
               </div>
             </div>
 
             {/* 诗人目录树 */}
             <div className="flex-1 overflow-y-auto p-2 poem-library-scrollbar">
-              {poetGroups.length === 0 ? (
+              {isLoading ? (
                 <div className="text-center text-slate-400 mt-8">
-                  {searchQuery ? '没有找到匹配的诗歌' : '还没有创作任何诗歌'}
+                  <div className="text-4xl mb-2">⏳</div>
+                  <div>加载中...</div>
+                </div>
+              ) : poetGroups.length === 0 ? (
+                <div className="text-center text-slate-400 mt-8">
+                  {searchQuery ? '没有找到匹配的诗歌' : '还没有任何诗歌作品'}
                 </div>
               ) : (
                 poetGroups.map((group) => (

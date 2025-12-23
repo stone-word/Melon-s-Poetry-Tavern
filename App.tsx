@@ -147,61 +147,8 @@ const App: React.FC = () => {
   // === 2. 事件处理器 ===
   
   // 关闭对话框
-  const handleCloseDialogue = () => {
-    // 如果有诗歌记录且有身份信息，保存到数据库
-    if (currentPoemRecord && currentCustomerIdentity && (dialogue.role === Role.CUSTOMER || dialogue.role === Role.POET)) {
-      try {
-        const recordId = PoemStorage.addPoemRecord(
-          currentPoemRecord.poem,
-          currentCustomerIdentity,
-          conversationHistory,
-          currentPoemRecord.customerReaction
-        );
-        console.log('诗歌记录已保存，ID:', recordId);
-      } catch (error) {
-        console.error('保存诗歌记录失败:', error);
-      }
-    }
-    
-    // 如果是圣诞老人对话，检查是否是第一次，并添加圣诞礼物诗歌
-    if (dialogue.role === Role.SANTA) {
-      const hasMetSanta = localStorage.getItem('mellon_met_santa');
-      if (!hasMetSanta) {
-        // 标记已经见过圣诞老人
-        localStorage.setItem('mellon_met_santa', 'true');
-        
-        // 创建圣诞老人的身份信息
-        const santaIdentity: CustomerIdentity = {
-          age: 999,
-          gender: '男',
-          occupation: '礼物配送员',
-          personality: 'ENFJ',
-          mood: '愉快',
-          isForeigner: true,
-          isShanghainess: false,
-          motivation: '给你带来圣诞礼物'
-        };
-        
-        // 添加圣诞礼物诗歌到图书馆
-        try {
-          const giftPoem = {
-            title: '给你的圣诞礼物',
-            author: '你的圣诞老人',
-            content: '等我想想'
-          };
-          
-          const recordId = PoemStorage.addPoemRecord(
-            giftPoem,
-            santaIdentity,
-            [],
-            undefined
-          );
-          console.log('🎁 圣诞礼物诗歌已添加到图书馆，ID:', recordId);
-        } catch (error) {
-          console.error('添加圣诞礼物诗歌失败:', error);
-        }
-      }
-    }
+  const handleCloseDialogue = async () => {
+    // 诗歌已在提交时保存，这里不再重复保存
     
     // 结束NPC对话状态，恢复NPC移动
     if (gameCanvasRef.current) {
@@ -361,7 +308,22 @@ const App: React.FC = () => {
       isThinking: false
     }));
     
-    // 保存诗歌记录信息（在对话结束时保存）
+    // 立刻保存到数据库（本地和云端）
+    if (currentCustomerIdentity && (dialogue.role === Role.CUSTOMER || dialogue.role === Role.POET)) {
+      try {
+        const recordId = await PoemStorage.addPoemRecord(
+          poem,
+          currentCustomerIdentity,
+          conversationHistory,
+          responseText
+        );
+        console.log('✅ 诗歌已立即保存，ID:', recordId);
+      } catch (error) {
+        console.error('❌ 保存诗歌失败:', error);
+      }
+    }
+    
+    // 保存诗歌记录信息（用于显示）
     setCurrentPoemRecord({
       poem,
       customerReaction: responseText
@@ -518,7 +480,7 @@ const App: React.FC = () => {
           <div className="flex justify-center items-start p-4 h-full">
             <GameCanvas 
                 ref={gameCanvasRef}
-                onOpenDialogue={(dialogueState) => {
+                onOpenDialogue={async (dialogueState) => {
                   setDialogue(dialogueState);
                   // 记录当前对话的NPC信息
                   if (dialogueState.isOpen && dialogueState.customerId) {
@@ -526,6 +488,43 @@ const App: React.FC = () => {
                       id: dialogueState.customerId,
                       role: dialogueState.role || Role.CUSTOMER
                     });
+                    
+                    // 如果是圣诞老人对话，检查并添加礼物诗歌
+                    if (dialogueState.role === Role.SANTA) {
+                      const hasGift = PoemStorage.hasSantaGiftPoem();
+                      if (!hasGift) {
+                        // 创建圣诞老人的身份信息
+                        const santaIdentity: CustomerIdentity = {
+                          age: 999,
+                          gender: '男',
+                          occupation: '礼物配送员',
+                          personality: 'ENFJ',
+                          mood: '愉快',
+                          isForeigner: true,
+                          isShanghainess: false,
+                          motivation: '给你带来圣诞礼物'
+                        };
+                        
+                        // 添加圣诞礼物诗歌到图书馆（只保存到本地）
+                        try {
+                          const giftPoem = {
+                            title: '给你的圣诞礼物',
+                            author: '你的圣诞老人',
+                            content: '等我想想'
+                          };
+                          
+                          await PoemStorage.addPoemRecord(
+                            giftPoem,
+                            santaIdentity,
+                            [],
+                            undefined,
+                            false // 不保存到云端
+                          );
+                        } catch (error) {
+                          console.error('添加圣诞礼物诗歌失败:', error);
+                        }
+                      }
+                    }
                   }
                 }}
                 dialogueState={dialogue}
