@@ -378,8 +378,7 @@ const App: React.FC = () => {
             // 创建虚拟诗人身份用于保存诗歌记录
             const poetIdentity: CustomerIdentity = {
                 age: 30,
-                gender: '男',
-                occupation: '诗人',
+                gender: '男',                surname: '李', // 诗人的姓氏                occupation: '诗人',
                 personality: '文艺、敏感、富有想象力',
                 mood: '专注而期待',
                 motivation: '聆听新的诗歌作品',
@@ -497,6 +496,7 @@ const App: React.FC = () => {
                         const santaIdentity: CustomerIdentity = {
                           age: 999,
                           gender: '男',
+                          surname: '圣', // 圣诞老人的姓氏
                           occupation: '礼物配送员',
                           personality: 'ENFJ',
                           mood: '愉快',
