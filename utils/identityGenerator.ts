@@ -6,6 +6,7 @@
  */
 
 import { CustomerIdentity, AGE_DISTRIBUTION, OCCUPATION_DISTRIBUTION, MBTI_TYPES, MOOD_TYPES } from '../types';
+import { getRandomEnglishName } from './englishNames';
 
 // 中文姓氏列表（常见100个姓氏）
 const CHINESE_SURNAMES = [
@@ -31,21 +32,23 @@ export function generateCustomerIdentity(): CustomerIdentity {
   // 2. 生成年龄 - 按照指定的概率分布
   const age = generateAge();
   
-  // 3. 生成姓氏 - 从姓氏列表中随机选择
-  const surname = CHINESE_SURNAMES[Math.floor(Math.random() * CHINESE_SURNAMES.length)];
-  
-  // 4. 生成职业 - 按照三级分类概率分布
+  // 3. 生成职业 - 按照三级分类概率分布
   const occupation = generateOccupation();
   
-  // 5. 生成性格 - 等概率随机选择
-  const personality = generatePersonality();
+  // 4. 判断是否外国人 - 基于职业
+  const isForeigner = isOccupationForeign(occupation);
+
+  // 5. 生成姓氏 - 外籍顾客使用英文名字库（按性别），否则使用中文姓氏
+  const surname = isForeigner
+    ? getRandomEnglishName(gender === '男' ? 'male' : 'female')
+    : CHINESE_SURNAMES[Math.floor(Math.random() * CHINESE_SURNAMES.length)];
   
-  // 6. 生成情绪 - 等概率随机选择
+  // 6. 生成性格 - 等概率随机选择
+  const personality = generatePersonality();
+
+  // 7. 生成情绪 - 等概率随机选择
   const mood = generateMood();
 
-  // 7. 判断是否外国人 - 基于职业
-  const isForeigner = isOccupationForeign(occupation);
-  
   // 8. 判断是否上海人 - 中国人中20%概率
   const isShanghainess = !isForeigner && Math.random() < 0.2;
 
