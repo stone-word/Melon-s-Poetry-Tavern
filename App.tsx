@@ -610,7 +610,13 @@ const App: React.FC = () => {
                           const giftPoem = {
                             title: '给你的圣诞礼物',
                             author: '你的圣诞老人',
-                            content: '等我想想'
+                            content: `其实我也不知道我怎么就存在了
+突然就出现在这里
+在这一家看起来很平面的酒馆
+穿着红色、白色、黑色的衣服
+旁边还有一头傻鹿
+这一切把我吓了一跳
+谢谢你跟我说话，让我感觉好多了`
                           };
                           
                           await PoemStorage.addPoemRecord(
