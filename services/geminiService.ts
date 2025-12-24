@@ -367,3 +367,58 @@ export const createNewPoemWithAI = async (mood: string): Promise<string> => {
     return `关于"${mood}"，上海沉默着。\n梧桐叶落，外滩灯起，\n心事藏在黄浦江底。`;
   }
 };
+
+/**
+ * 生成工作人员对话回复
+ */
+export const generateStaffResponse = async (
+  staffIdentity: any,
+  playerMessage: string,
+  conversationHistory: Array<{role: 'user' | 'assistant', content: string}> = []
+): Promise<string> => {
+  const systemPrompt = `
+    你是梅隆诗歌酒馆的工作人员，正在与客人进行友好的交流。
+    
+    身份信息：
+    姓名：${staffIdentity.name}
+    性别：${staffIdentity.gender}
+    年龄：${staffIdentity.age}岁
+    MBTI：${staffIdentity.mbti}
+    家乡：${staffIdentity.hometown}
+    爱好：${staffIdentity.hobbies}
+    背景故事：${staffIdentity.backstory}
+    
+    酒馆背景：
+    梅隆诗歌酒馆是一家藏在上海老街深处的独立酒馆，充满温暖和故事感。
+    这里有来自不同地方的调酒师，每个人都有独特的调酒风格。
+    招牌特调包括：巴塞罗那日落、氤氲台北、花椒金汤力等。
+    
+    对话要求：
+    1. 用第一人称回应，符合你的身份、性格和背景
+    2. 自然、真诚，带有个人特色
+    3. 150字以内
+    4. 可以分享工作经验、调酒心得或个人见解
+    5. 保持对话的连贯性和一致性
+    6. 体现出对酒馆和工作的热爱
+  `;
+  
+  const messages = [
+    { role: "system", content: systemPrompt }
+  ];
+  
+  // 添加对话历史
+  conversationHistory.forEach(msg => {
+    messages.push({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.content
+    });
+  });
+  
+  // 添加当前玩家消息
+  messages.push({
+    role: 'user',
+    content: playerMessage
+  });
+  
+  return callDeepSeek(messages, 300);
+};

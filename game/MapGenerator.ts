@@ -32,11 +32,13 @@ export class MapGenerator {
         });
 
         // B. 钢琴 (2x2 格子)
+        // 使用 17.5/21.5 作为家具绘制中心，但将占用的整格 (17,18) x (21,22) 标记为静态障碍
         const PIANO_COL = 17.5; 
         const PIANO_ROW = 21.5;
 
         items.push({ type: 'PIANO_TL', c: PIANO_COL, r: PIANO_ROW });
         items.push({ type: 'PIANO_TR', c: PIANO_COL + 1, r: PIANO_ROW });
+        // 原有小数坐标仍保留用于渲染参考
         obs.add(`${PIANO_COL},${PIANO_ROW}`);
         obs.add(`${PIANO_COL + 1},${PIANO_ROW}`);
 
@@ -44,6 +46,15 @@ export class MapGenerator {
         items.push({ type: 'PIANO_BR', c: PIANO_COL + 1, r: PIANO_ROW + 1 });
         obs.add(`${PIANO_COL},${PIANO_ROW + 1}`);
         obs.add(`${PIANO_COL + 1},${PIANO_ROW + 1}`);
+
+        // 关键：将钢琴占据的整数格也标记为障碍，确保寻路将其视为不可通行
+        const pianoTiles = [
+            {c: Math.floor(PIANO_COL), r: Math.floor(PIANO_ROW)},
+            {c: Math.ceil(PIANO_COL),  r: Math.floor(PIANO_ROW)},
+            {c: Math.floor(PIANO_COL), r: Math.ceil(PIANO_ROW)},
+            {c: Math.ceil(PIANO_COL),  r: Math.ceil(PIANO_ROW)}
+        ];
+        pianoTiles.forEach(t => obs.add(`${t.c},${t.r}`));
 
         // C. 吧台装饰
         const BARREL_COL = 46;

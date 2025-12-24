@@ -129,6 +129,11 @@ const PoemLibrary: React.FC<PoemLibraryProps> = ({ isOpen, onClose }) => {
     const title = customer.gender === '男' ? '先生' : '女士';
     const nationality = customer.isForeigner ? '外国人' : '中国人';
     const location = customer.isShanghainess ? '，上海本地人' : '';
+    // 如果是驻店诗人，使用更简短的显示格式
+    if (customer.occupation === '驻店诗人') {
+      return `驻店诗人${surname}${title}，${customer.age}岁`;
+    }
+
     return `顾客${surname}${title}，${customer.age}岁，${customer.occupation}，${nationality}${location}`;
   };
 
@@ -257,7 +262,7 @@ const PoemLibrary: React.FC<PoemLibraryProps> = ({ isOpen, onClose }) => {
                               {formatDate(poem.timestamp)}
                             </div>
                             <div className="text-xs text-slate-500 mt-1">
-                              赠予：{poem.customer.surname ? `${poem.customer.surname}${poem.customer.gender === '男' ? '先生' : '女士'}` : poem.customer.occupation}
+                              赠予：{('surname' in poem.customer && (poem.customer as any).surname) ? `${(poem.customer as any).surname}${(poem.customer as any).gender === '男' ? '先生' : '女士'}` : (poem.customer as any).occupation || '未知'}
                             </div>
                           </div>
                         ))}
@@ -306,13 +311,13 @@ const PoemLibrary: React.FC<PoemLibraryProps> = ({ isOpen, onClose }) => {
                       </div>
                       <div className="grid grid-cols-1 gap-2 text-sm">
                         <div className="text-slate-400">
-                          <span className="text-slate-300">性格：</span>{selectedPoem.customer.personality}
+                          <span className="text-slate-300">性格：</span>{(selectedPoem.customer as any).personality || '—'}
                         </div>
                         <div className="text-slate-400">
-                          <span className="text-slate-300">心情：</span>{selectedPoem.customer.mood}
+                          <span className="text-slate-300">心情：</span>{(selectedPoem.customer as any).mood || '—'}
                         </div>
                         <div className="text-slate-400">
-                          <span className="text-slate-300">来店动机：</span>{selectedPoem.customer.motivation}
+                          <span className="text-slate-300">来店动机：</span>{(selectedPoem.customer as any).motivation || '—'}
                         </div>
                       </div>
                     </div>

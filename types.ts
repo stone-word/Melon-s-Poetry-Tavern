@@ -82,6 +82,18 @@ export interface Position {
 
 
 
+// === 5.5. 工作人员身份接口 (固定NPC) ===
+export interface StaffIdentity {
+  name: string;          // 姓名
+  gender: '男' | '女';   // 性别
+  age: number;           // 年龄
+  mbti: string;          // MBTI类型
+  hometown: string;      // 家乡
+  hobbies: string;       // 爱好
+  backstory: string;     // 背景故事
+  role: Role;            // 角色类型
+}
+
 // === 6. 订单接口 (预留未来扩展) ===
 export interface Order {
   id: number;
@@ -119,6 +131,7 @@ export interface Agent extends Position {
   speed: number;        // 移动速度
   state: string;        // 当前状态 (IDLE, MOVING, 或具体的角色状态)
   identity?: CustomerIdentity; // NPC 的详细身份设定 (可选)
+  staffIdentity?: StaffIdentity; // 工作人员的固定身份信息（调酒师、服务员、清洁工）
   spriteImage?: HTMLImageElement; // 自定义精灵图（用于外部PNG图片）
   
   // 顾客相关属性
@@ -172,6 +185,7 @@ export interface Agent extends Position {
 
   // 通用属性
   stuckCounter?: number;
+  pauseTimer?: number;          // 暂停计时器（用于闲逛时的随机停留）
 }
 
 // === 8. 音符特效接口 ===
@@ -440,6 +454,7 @@ export interface DialogueState {
   isThinking: boolean;  // 是否正在等待 AI 生成
   role: Role | null;    // 当前对话角色的身份
   customerId?: number;  // 对应的 NPC ID
+  staffIdentity?: StaffIdentity; // 工作人员身份信息（调酒师、服务员、清洁工）
   // 当打开的是处于睡眠状态的顾客时，设置为 true，用于在 UI 中直接显示静默的 "zzz..." 内容并禁用交互
   isSleeping?: boolean;
 }

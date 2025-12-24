@@ -15,6 +15,7 @@ import { GameState } from '../game/types';
 import ChatBubbles from './ChatBubbles';
 import metadata from '../metadata.json';
 import musicService from '../services/musicService';
+import { getStaffIdentity } from '../services/staffIdentities';
 
 interface GameCanvasProps {
   onOpenDialogue: (dialogue: DialogueState) => void;
@@ -252,33 +253,37 @@ const GameCanvas = React.forwardRef<GameCanvasRef, GameCanvasProps>(({ onOpenDia
             c: 45, r: 14, pixelX: 45 * TILE_SIZE, pixelY: 14 * TILE_SIZE, 
             id: 1, role: Role.BARTENDER, color: '#9b59b6', path: [], speed: 1, state: 'IDLE',
             bartenderState: BartenderState.IDLE,
-            homePosition: { c: 45, r: 14, pixelX: 45 * TILE_SIZE, pixelY: 14 * TILE_SIZE }
+            homePosition: { c: 45, r: 14, pixelX: 45 * TILE_SIZE, pixelY: 14 * TILE_SIZE },
+            staffIdentity: getStaffIdentity(Role.BARTENDER, 0) // Diego Ramos
         },
         { 
             c: 45, r: 16, pixelX: 45 * TILE_SIZE, pixelY: 16 * TILE_SIZE, 
             id: 2, role: Role.BARTENDER, color: '#9b59b6', path: [], speed: 1, state: 'IDLE',
             bartenderState: BartenderState.IDLE,
-            homePosition: { c: 45, r: 16, pixelX: 45 * TILE_SIZE, pixelY: 16 * TILE_SIZE }
+            homePosition: { c: 45, r: 16, pixelX: 45 * TILE_SIZE, pixelY: 16 * TILE_SIZE },
+            staffIdentity: getStaffIdentity(Role.BARTENDER, 1) // 薇薇
         },
         { 
             c: 45, r: 18, pixelX: 45 * TILE_SIZE, pixelY: 18 * TILE_SIZE, 
             id: 3, role: Role.BARTENDER, color: '#9b59b6', path: [], speed: 1, state: 'IDLE',
             bartenderState: BartenderState.IDLE,
-            homePosition: { c: 45, r: 18, pixelX: 45 * TILE_SIZE, pixelY: 18 * TILE_SIZE }
+            homePosition: { c: 45, r: 18, pixelX: 45 * TILE_SIZE, pixelY: 18 * TILE_SIZE },
+            staffIdentity: getStaffIdentity(Role.BARTENDER, 2) // 二胡
         }
     ];
 
     const waiters: Agent[] = [
-         { c: 20, r: 15, pixelX: 20*TILE_SIZE, pixelY: 15*TILE_SIZE, id: 4, role: Role.WAITER, color: '#f1c40f', path: [], speed: 1.8, state: 'IDLE' },
-         { c: 25, r: 10, pixelX: 25*TILE_SIZE, pixelY: 10*TILE_SIZE, id: 5, role: Role.WAITER, color: '#f1c40f', path: [], speed: 1.8, state: 'IDLE' },
-         { c: 30, r: 20, pixelX: 30*TILE_SIZE, pixelY: 20*TILE_SIZE, id: 6, role: Role.WAITER, color: '#f1c40f', path: [], speed: 1.8, state: 'IDLE' },
-         { c: 15, r: 25, pixelX: 15*TILE_SIZE, pixelY: 25*TILE_SIZE, id: 7, role: Role.WAITER, color: '#f1c40f', path: [], speed: 1.8, state: 'IDLE' }
+         { c: 20, r: 15, pixelX: 20*TILE_SIZE, pixelY: 15*TILE_SIZE, id: 4, role: Role.WAITER, color: '#f1c40f', path: [], speed: 1.8, state: 'IDLE', staffIdentity: getStaffIdentity(Role.WAITER, 0) }, // 阿辉
+         { c: 25, r: 10, pixelX: 25*TILE_SIZE, pixelY: 10*TILE_SIZE, id: 5, role: Role.WAITER, color: '#f1c40f', path: [], speed: 1.8, state: 'IDLE', staffIdentity: getStaffIdentity(Role.WAITER, 1) }, // 小雨
+         { c: 30, r: 20, pixelX: 30*TILE_SIZE, pixelY: 20*TILE_SIZE, id: 6, role: Role.WAITER, color: '#f1c40f', path: [], speed: 1.8, state: 'IDLE', staffIdentity: getStaffIdentity(Role.WAITER, 2) }, // 小马哥
+         { c: 15, r: 25, pixelX: 15*TILE_SIZE, pixelY: 25*TILE_SIZE, id: 7, role: Role.WAITER, color: '#f1c40f', path: [], speed: 1.8, state: 'IDLE', staffIdentity: getStaffIdentity(Role.WAITER, 3) }  // 真雅
     ];
 
     const cleaners: Agent[] = [
          { 
            c: 10, r: 8, pixelX: 10*TILE_SIZE, pixelY: 8*TILE_SIZE, 
-           id: 8, role: Role.CLEANER, color: '#f1c40f', path: [], speed: 1.2, state: 'IDLE'
+           id: 8, role: Role.CLEANER, color: '#f1c40f', path: [], speed: 1.2, state: 'IDLE',
+           staffIdentity: getStaffIdentity(Role.CLEANER, 0) // 王阿姨
          }
     ];
     
@@ -540,8 +545,8 @@ const GameCanvas = React.forwardRef<GameCanvasRef, GameCanvasProps>(({ onOpenDia
     // 创建初始游戏状态
     const initialGameState: GameState = {
         player: {
-            c: 5, r: 10, pixelX: 5 * TILE_SIZE, pixelY: 10 * TILE_SIZE,
-            id: 999, role: Role.PLAYER, color: 'blue', path: [], speed: 4, state: 'IDLE'
+            c: 24, r: 8, pixelX: 24 * TILE_SIZE, pixelY: 8 * TILE_SIZE,
+            id: 999, role: Role.PLAYER, color: 'blue', path: [], speed: 2.5, state: 'IDLE'
         },
         npcs: [...bartenders, ...waiters, ...cleaners, ...customers, poet, musician, ...(santa ? [santa] : []), cat],
         pendingOrders: [],

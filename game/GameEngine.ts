@@ -1021,6 +1021,19 @@ export class GameEngine {
         npc.path = []; // 清空当前路径，立即停止移动
 
         switch (npc.role) {
+            case Role.MUSICIAN:
+                // 音乐家专属对话：显示固定信息（音乐家 周杰伦）且不可输入
+                speakerName = '音乐家 周某';
+                onOpenDialogue({
+                    isOpen: true,
+                    speakerName,
+                    content: '哎呦，不错哦',
+                    isThinking: false,
+                    role,
+                    customerId: npc.id,
+                    isMusician: true
+                });
+                return;
             case Role.CUSTOMER:
                 // 如果顾客处于睡眠状态，立即打开特殊静默对话（无论是否有 identity）
                 if (npc.customerState === CustomerState.SLEEPING) {
@@ -1107,36 +1120,39 @@ export class GameEngine {
                 }
                 break;
             case Role.BARTENDER:
-                speakerName = '调酒师';
+                speakerName = npc.staffIdentity ? `调酒师 ${npc.staffIdentity.name}` : '调酒师';
                 onOpenDialogue({
                     isOpen: true,
                     speakerName,
-                    content: '你好！有什么可以帮助你的吗？',
+                    content: '',
                     isThinking: false,
                     role,
-                    customerId: npc.id
+                    customerId: npc.id,
+                    staffIdentity: npc.staffIdentity
                 });
                 break;
             case Role.WAITER:
-                speakerName = '服务员';
+                speakerName = npc.staffIdentity ? `服务员 ${npc.staffIdentity.name}` : '服务员';
                 onOpenDialogue({
                     isOpen: true,
                     speakerName,
-                    content: '你好！有什么可以帮助你的吗？',
+                    content: '',
                     isThinking: false,
                     role,
-                    customerId: npc.id
+                    customerId: npc.id,
+                    staffIdentity: npc.staffIdentity
                 });
                 break;
             case Role.CLEANER:
-                speakerName = '清洁工';
+                speakerName = npc.staffIdentity ? `清洁工 ${npc.staffIdentity.name}` : '清洁工';
                 onOpenDialogue({
                     isOpen: true,
                     speakerName,
-                    content: '你好！有什么可以帮助你的吗？',
+                    content: '',
                     isThinking: false,
                     role,
-                    customerId: npc.id
+                    customerId: npc.id,
+                    staffIdentity: npc.staffIdentity
                 });
                 break;
             case Role.POET:

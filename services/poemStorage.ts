@@ -6,7 +6,7 @@
  * 支持本地存储（localStorage）和云存储（Supabase）
  */
 
-import { CustomerIdentity } from '../types';
+import { CustomerIdentity, StaffIdentity } from '../types';
 import { supabase } from './supabaseClient';
 
 // 诗歌记录接口
@@ -18,7 +18,8 @@ export interface PoemRecord {
     author: string;
     content: string;
   };
-  customer: CustomerIdentity; // 顾客完整信息
+  // 顾客或工作人员信息（有时玩家与工作人员对话并保存）
+  customer: CustomerIdentity | StaffIdentity;
   conversationHistory: Array<{
     role: 'user' | 'assistant';
     content: string;
@@ -76,8 +77,8 @@ const savePoemDatabase = (database: PoemDatabase): boolean => {
  */
 export const addPoemRecord = async (
   poem: { title: string; author: string; content: string },
-  customer: CustomerIdentity,
-  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
+  customer: CustomerIdentity | StaffIdentity,
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> ,
   customerReaction?: string,
   saveToCloud: boolean = true // 新增参数，默认保存到云端
 ): Promise<string> => {
@@ -144,7 +145,7 @@ export const getPoemStatistics = () => {
   // 按顾客职业分组统计
   const occupationStats: Record<string, number> = {};
   poems.forEach(record => {
-    const occupation = record.customer.occupation;
+    const occupation = (record.customer as any).occupation || '未知';
     occupationStats[occupation] = (occupationStats[occupation] || 0) + 1;
   });
   
@@ -172,12 +173,14 @@ export const searchPoemRecords = (query: string): PoemRecord[] => {
   const lowerQuery = query.toLowerCase();
   
   return database.poems.filter(record => {
+    const occupation = ((record.customer as any).occupation || '').toLowerCase();
+    const personality = ((record.customer as any).personality || '').toLowerCase();
     return (
       record.poem.title.toLowerCase().includes(lowerQuery) ||
       record.poem.content.toLowerCase().includes(lowerQuery) ||
       record.poem.author.toLowerCase().includes(lowerQuery) ||
-      record.customer.occupation.toLowerCase().includes(lowerQuery) ||
-      record.customer.personality.toLowerCase().includes(lowerQuery)
+      occupation.includes(lowerQuery) ||
+      personality.includes(lowerQuery)
     );
   });
 };

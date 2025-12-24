@@ -5,7 +5,7 @@
  * 负责整体布局、状态提升 (State Lifting) 以及核心业务逻辑的协调。
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import GameCanvas, { GameCanvasRef } from './components/GameCanvas';
 import DialogueBox from './components/DialogueBox';
 import PoemCreationDialog from './components/PoemCreationDialog';
@@ -168,7 +168,10 @@ const App: React.FC = () => {
 
   // 处理打字机效果完成
   const handleTypingComplete = (content: string) => {
-    if (dialogue.role === Role.CUSTOMER) {
+    if (dialogue.role === Role.CUSTOMER || 
+        dialogue.role === Role.BARTENDER || 
+        dialogue.role === Role.WAITER || 
+        dialogue.role === Role.CLEANER) {
       // 立即将内容添加到历史记录
       setConversationHistory(prev => [
         ...prev,
@@ -179,17 +182,74 @@ const App: React.FC = () => {
     }
   };
 
-  // 处理对话框打开时的初始化
-  React.useEffect(() => {
+  // 处理对话框打开时的初始化（推荐方案：用useRef跟踪customerId，切换对话时先清空历史再添加开场白）
+  const lastDialogueNPCId = useRef<number | null>(null);
+  useEffect(() => {
     if (dialogue.isOpen && dialogue.role === Role.POET && dialogue.content === '' && poetDialogueState === 'initial') {
-      // 诗人对话初始化 - 自动显示选择界面
       setPoetDialogueState('choice');
       setDialogue(prev => ({
         ...prev,
         content: '你想听听我的诗，还是想让我听听你的诗？'
       }));
     }
-  }, [dialogue.isOpen, dialogue.role, dialogue.content, poetDialogueState]);
+
+    // 工作人员对话初始化 - 用customerId判定新对话
+    if (
+      dialogue.isOpen &&
+      dialogue.content === '' &&
+      (dialogue.role === Role.BARTENDER || dialogue.role === Role.WAITER || dialogue.role === Role.CLEANER) &&
+      dialogue.staffIdentity &&
+      dialogue.customerId !== undefined
+    ) {
+      if (lastDialogueNPCId.current !== dialogue.customerId) {
+        lastDialogueNPCId.current = dialogue.customerId;
+        setConversationHistory([]);
+        let greeting = '你好！有什么可以帮助你的吗？';
+        if (dialogue.role === Role.BARTENDER) {
+          switch (dialogue.staffIdentity.name) {
+            case 'Diego Ramos':
+              greeting = '¡Hola！欢迎来到我们的"小联合国"——今晚是想尝试点冒险的味道，还是来杯让你想起家乡的酒？';
+              break;
+            case '薇薇':
+              greeting = '晚上好，这是今天的风味实验单。如果有特定偏好或忌口，现在告诉我会获得更精确的推荐。';
+              break;
+            case '二胡':
+              greeting = '坐吧，经典款在左边，创意款在右边。想喝点带劲的可以问我。';
+              break;
+          }
+        } else if (dialogue.role === Role.WAITER) {
+          switch (dialogue.staffIdentity.name) {
+            case '阿辉':
+              greeting = '哈喽！第一次来吗？我是阿辉——需要推荐的话，我大概能根据口音猜出你会喜欢什么风格哦！';
+              break;
+            case '小雨':
+              greeting = '你好呀，角落那个位置看街景最灵光，要帮你留吗？今天特调的插画是这幅"梧桐夜风"。';
+              break;
+            case '小马哥':
+              greeting = '您好，几位？里面还有张桌子不挨着出风口——上海这天气坐风口容易头疼。';
+              break;
+            case '真雅':
+              greeting = '안녕하세요，请随意坐。需要挂外套的话告诉我。今天有点凉，先给您倒杯温水好吗？';
+              break;
+          }
+        } else if (dialogue.role === Role.CLEANER) {
+          if (dialogue.staffIdentity.name === '王阿姨') {
+            greeting = '来啦？门口地毯刚吸过尘，鞋子蹭蹭再进去，里头干净。';
+          }
+        }
+        // 延迟添加，确保清空完成
+        setTimeout(() => {
+          setConversationHistory([
+            { role: 'assistant', content: greeting }
+          ]);
+        }, 0);
+      }
+    }
+    // 对话关闭时重置ref
+    if (!dialogue.isOpen) {
+      lastDialogueNPCId.current = null;
+    }
+  }, [dialogue.isOpen, dialogue.role, dialogue.content, poetDialogueState, dialogue.staffIdentity, dialogue.customerId]);
 
   // 监控诗人对话状态，用于调试
   React.useEffect(() => {
@@ -259,9 +319,15 @@ const App: React.FC = () => {
   const handlePoemSubmit = async (poem: { title: string; author: string; content: string }) => {
     // 格式化诗歌内容（对话框中不显示作者）
     const formattedPoemForDisplay = `《${poem.title}》\n\n${poem.content}`;
-    
+
     // 将诗歌添加到对话历史
-    if (dialogue.role === Role.CUSTOMER || dialogue.role === Role.POET) {
+    if (
+      dialogue.role === Role.CUSTOMER ||
+      dialogue.role === Role.POET ||
+      dialogue.role === Role.BARTENDER ||
+      dialogue.role === Role.WAITER ||
+      dialogue.role === Role.CLEANER
+    ) {
       setConversationHistory(prev => [
         ...prev,
         { role: 'user', content: formattedPoemForDisplay }
@@ -307,13 +373,23 @@ const App: React.FC = () => {
       content: responseText,
       isThinking: false
     }));
-    
+
     // 立刻保存到数据库（本地和云端）
-    if (currentCustomerIdentity && (dialogue.role === Role.CUSTOMER || dialogue.role === Role.POET)) {
+    if (
+      (currentCustomerIdentity && (dialogue.role === Role.CUSTOMER || dialogue.role === Role.POET))
+      || (
+        (dialogue.role === Role.BARTENDER || dialogue.role === Role.WAITER || dialogue.role === Role.CLEANER)
+        && dialogue.staffIdentity
+      )
+    ) {
       try {
+        const customerInfo =
+          (dialogue.role === Role.BARTENDER || dialogue.role === Role.WAITER || dialogue.role === Role.CLEANER)
+            ? dialogue.staffIdentity as any
+            : currentCustomerIdentity as any;
         const recordId = await PoemStorage.addPoemRecord(
           poem,
-          currentCustomerIdentity,
+          customerInfo,
           conversationHistory,
           responseText
         );
@@ -322,7 +398,7 @@ const App: React.FC = () => {
         console.error('❌ 保存诗歌失败:', error);
       }
     }
-    
+
     // 保存诗歌记录信息（用于显示）
     setCurrentPoemRecord({
       poem,
@@ -332,8 +408,11 @@ const App: React.FC = () => {
 
   // 处理用户在对话框中的输入 (发送给 AI)
   const handleSendInput = async (inputText: string) => {
-    // 先将用户输入添加到对话历史（仅对顾客）
-    if (dialogue.role === Role.CUSTOMER) {
+    // 先将用户输入添加到对话历史（顾客和工作人员）
+    if (dialogue.role === Role.CUSTOMER || 
+        dialogue.role === Role.BARTENDER || 
+        dialogue.role === Role.WAITER || 
+        dialogue.role === Role.CLEANER) {
         setConversationHistory(prev => [
             ...prev,
             { role: 'user', content: inputText }
@@ -377,15 +456,15 @@ const App: React.FC = () => {
             setPoetDialogueState('listening');
             // 创建虚拟诗人身份用于保存诗歌记录
             const poetIdentity: CustomerIdentity = {
-                age: 30,
-                gender: '男',
-                surname: '李', // 诗人的姓氏
-                occupation: '诗人',
-                personality: '文艺、敏感、富有想象力',
-                mood: '专注而期待',
-                motivation: '聆听新的诗歌作品',
-                isForeigner: false,
-                isShanghainess: true
+              age: 31,
+              gender: '男',
+              surname: '王', // 驻店诗人的姓氏
+              occupation: '驻店诗人',
+              personality: '文艺、敏感、富有想象力',
+              mood: '专注而期待',
+              motivation: '聆听新的诗歌作品',
+              isForeigner: false,
+              isShanghainess: true
             };
             setCurrentCustomerIdentity(poetIdentity);
             
@@ -441,6 +520,25 @@ const App: React.FC = () => {
             }
         } else {
             responseText = "抱歉，我现在不太想说话...";
+        }
+    } else if (dialogue.role === Role.BARTENDER || dialogue.role === Role.WAITER || dialogue.role === Role.CLEANER) {
+        // 工作人员对话逻辑
+        if (dialogue.staffIdentity) {
+            if (inputText === "让我为你写首诗吧！") {
+                // 打开诗歌创作对话框，不进入思考状态
+                setShowPoemDialog(true);
+                // 重置对话状态，取消思考状态
+                setDialogue(prev => ({
+                    ...prev,
+                    isThinking: false
+                }));
+                return; // 不继续处理，等待用户完成诗歌创作
+            } else {
+                // 自由聊天 - 传递对话历史
+                responseText = await GeminiService.generateStaffResponse(dialogue.staffIdentity, inputText, conversationHistory);
+            }
+        } else {
+            responseText = "你好！有什么可以帮助你的吗？";
         }
     } else {
         // 通用对话逻辑

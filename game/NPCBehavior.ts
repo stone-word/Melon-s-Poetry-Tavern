@@ -374,6 +374,12 @@ export class NPCBehavior {
         getBarPositionMoney: (c: number, r: number) => number,
         setBarPositionMoney: (c: number, r: number, amount: number) => void
     ): void => {
+        // 如果正在与玩家对话，暂停所有行为
+        if (waiter.isInConversation) {
+            waiter.path = []; // 清空路径，停止移动
+            return;
+        }
+        
         if (!waiter.waiterState) waiter.waiterState = WaiterState.IDLE;
         if (!waiter.stateTimer) waiter.stateTimer = 0;
         waiter.stateTimer++;
@@ -555,6 +561,12 @@ export class NPCBehavior {
         npcs: Agent[],
         player: Agent
     ): void => {
+        // 如果正在与玩家对话，暂停所有行为
+        if (cleaner.isInConversation) {
+            cleaner.path = []; // 清空路径，停止移动
+            return;
+        }
+        
         if (!cleaner.cleanerState) cleaner.cleanerState = CleanerState.IDLE;
         if (!cleaner.stateTimer) cleaner.stateTimer = 0;
         cleaner.stateTimer++;
@@ -611,10 +623,20 @@ export class NPCBehavior {
             case CleanerState.WANDERING:
                 if (cleaner.path.length === 0) {
                     if (cleaner.stateTimer > 180) {
-                        const wanderPos = this.getRandomWanderPosition(npcs, player);
-                        if (wanderPos) {
-                            cleaner.path = this.pathFinding.findPath(cleaner, wanderPos, Role.CLEANER, true, npcs, player);
+                        // 50%概率停留2-8秒后再继续移动
+                        if (!cleaner.pauseTimer && Math.random() < 0.5) {
+                            cleaner.pauseTimer = 120 + Math.random() * 360; // 2-8秒
                             cleaner.stateTimer = 0;
+                        } else if (cleaner.pauseTimer && cleaner.pauseTimer > 0) {
+                            cleaner.pauseTimer--;
+                            cleaner.stateTimer = 0;
+                        } else {
+                            cleaner.pauseTimer = 0;
+                            const wanderPos = this.getRandomWanderPosition(npcs, player);
+                            if (wanderPos) {
+                                cleaner.path = this.pathFinding.findPath(cleaner, wanderPos, Role.CLEANER, true, npcs, player);
+                                cleaner.stateTimer = 0;
+                            }
                         }
                     }
                 }
@@ -622,6 +644,7 @@ export class NPCBehavior {
                 if (dirtyTables.length > 0) {
                     cleaner.cleanerState = CleanerState.IDLE;
                     cleaner.stateTimer = 0;
+                    cleaner.pauseTimer = 0;
                     cleaner.path = [];
                 }
                 break;
@@ -638,6 +661,12 @@ export class NPCBehavior {
         pendingOrders: Order[],
         readyDrinks: Order[]
     ): void => {
+        // 如果正在与玩家对话，暂停所有行为
+        if (bartender.isInConversation) {
+            bartender.path = []; // 清空路径，停止移动
+            return;
+        }
+        
         if (!bartender.bartenderState) bartender.bartenderState = BartenderState.IDLE;
         if (!bartender.stateTimer) bartender.stateTimer = 0;
         if (!bartender.homePosition) {
@@ -683,11 +712,23 @@ export class NPCBehavior {
                     }
                 } else {
                     // 没有订单时的闲置行为：小范围随机移动
-                    if (bartender.stateTimer > 180 + Math.random() * 300 && bartender.path.length === 0) { // 3-8秒
-                        const wanderPos = this.getBartenderWanderPosition(bartender, npcs, player);
-                        if (wanderPos) {
-                            bartender.path = this.pathFinding.findPath(bartender, wanderPos, Role.BARTENDER, true, npcs, player);
-                            bartender.stateTimer = 0;
+                    if (bartender.path.length === 0) {
+                        if (bartender.stateTimer > 180 + Math.random() * 300) { // 3-8秒
+                            // 40%概率停留5-15秒后再继续移动
+                            if (!bartender.pauseTimer && Math.random() < 0.4) {
+                                bartender.pauseTimer = 300 + Math.random() * 600; // 5-15秒
+                                bartender.stateTimer = 0;
+                            } else if (bartender.pauseTimer && bartender.pauseTimer > 0) {
+                                bartender.pauseTimer--;
+                                bartender.stateTimer = 0;
+                            } else {
+                                bartender.pauseTimer = 0;
+                                const wanderPos = this.getBartenderWanderPosition(bartender, npcs, player);
+                                if (wanderPos) {
+                                    bartender.path = this.pathFinding.findPath(bartender, wanderPos, Role.BARTENDER, true, npcs, player);
+                                    bartender.stateTimer = 0;
+                                }
+                            }
                         }
                     }
                 }
@@ -782,6 +823,7 @@ export class NPCBehavior {
                         const nextStates = [PoetState.SITTING_THINKING, PoetState.WRITING];
                         poet.poetState = nextStates[Math.floor(Math.random() * nextStates.length)];
                         poet.stateTimer = 0;
+                        poet.pauseTimer = 0;
                         
                         if (poet.poetState === PoetState.SITTING_THINKING) {
                             const chairNearPos = this.pathFinding.findNearestWalkablePosition(44, 26, npcs, player);
@@ -795,9 +837,17 @@ export class NPCBehavior {
                             }
                         }
                     } else {
-                        const wanderPos = this.getPoetWanderPosition(npcs, player);
-                        if (wanderPos) {
-                            poet.path = this.pathFinding.findPath(poet, wanderPos, Role.POET, true, npcs, player);
+                        // 到达目标后，70%概率停留5-20秒
+                        if (!poet.pauseTimer && Math.random() < 0.7) {
+                            poet.pauseTimer = 300 + Math.random() * 900; // 5-20秒
+                        } else if (poet.pauseTimer && poet.pauseTimer > 0) {
+                            poet.pauseTimer--;
+                        } else {
+                            poet.pauseTimer = 0;
+                            const wanderPos = this.getPoetWanderPosition(npcs, player);
+                            if (wanderPos) {
+                                poet.path = this.pathFinding.findPath(poet, wanderPos, Role.POET, true, npcs, player);
+                            }
                         }
                     }
                 }
@@ -862,6 +912,13 @@ export class NPCBehavior {
             }
         }
         if (!cat.wanderTimer) cat.wanderTimer = 0;
+        if (!cat.pauseTimer) cat.pauseTimer = 0;
+
+        // 如果处于暂停状态，只递增计时器
+        if (cat.pauseTimer > 0) {
+            cat.pauseTimer--;
+            return; // 暂停中，不移动
+        }
 
         // 每隔一段时间（约3-8秒）选择一个新的目标位置
         cat.wanderTimer++;
@@ -869,6 +926,12 @@ export class NPCBehavior {
         // 如果没有路径或已经到达目标，且计时器到期，则选择新目标
         if (cat.wanderTimer > 180 + Math.random() * 300) { // 3-8秒
             cat.wanderTimer = 0;
+            
+            // 60%概率停留3-10秒
+            if (Math.random() < 0.6) {
+                cat.pauseTimer = 180 + Math.random() * 420; // 3-10秒
+                return;
+            }
             
             // 随机选择酒馆内的一个位置（猫可以到达家具上）
             const targetPos = this.getRandomWalkablePositionForCat(npcs, player);

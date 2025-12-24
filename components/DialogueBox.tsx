@@ -59,6 +59,9 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onClose, onSendInpu
   const timerRef = useRef<number | null>(null);
   const storyAreaRef = useRef<HTMLDivElement>(null);
 
+  // 检查是否为音乐家对话（只读）
+  const isMusician = (dialogue as any).isMusician;
+
   // 生成随机的顾客思考文本
   const generateCustomerThinkingText = () => {
     const commonTexts = ["好吧...", "让我想想怎么说...", "说来话长...", "你想知道？让我告诉你...", "..."];
@@ -122,6 +125,11 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onClose, onSendInpu
         if (onTypingComplete) {
           onTypingComplete(fullText);
         }
+      } else if (dialogue.role === Role.BARTENDER || dialogue.role === Role.WAITER || dialogue.role === Role.CLEANER) {
+        // 工作人员也需要通知完成
+        if (onTypingComplete) {
+          onTypingComplete(fullText);
+        }
       }
       return;
     }
@@ -145,6 +153,14 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onClose, onSendInpu
             onTypingComplete(fullText);
           }
           // 延迟清空当前显示内容，确保历史记录更新完成
+          setTimeout(() => {
+            setDisplayedText('');
+          }, 50);
+        } else if (dialogue.role === Role.BARTENDER || dialogue.role === Role.WAITER || dialogue.role === Role.CLEANER) {
+          // 工作人员也需要通知完成并清空
+          if (onTypingComplete) {
+            onTypingComplete(fullText);
+          }
           setTimeout(() => {
             setDisplayedText('');
           }, 50);
@@ -207,6 +223,22 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onClose, onSendInpu
   // 如果对话框未打开，不渲染任何内容
   if (!dialogue.isOpen) return null;
 
+  // 音乐家专属只读对话框
+  if (isMusician) {
+    return (
+      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 w-11/12 max-w-sm bg-slate-900/90 border-2 border-slate-600 rounded-lg p-6 shadow-2xl z-50 text-slate-100 backdrop-blur-sm">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="text-xl font-bold text-amber-400">音乐家 周某</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">✕</button>
+        </div>
+        <div className="flex items-center justify-center mb-4">
+          <span className="text-2xl text-gray-400">🎵 🎶 🎵</span>
+        </div>
+        <div className="text-center text-lg text-white font-semibold">哎呦，不错哦</div>
+      </div>
+    );
+  }
+
   // === 3. 交互处理 ===
   const handleSend = () => {
     if (inputText.trim()) {
@@ -245,6 +277,15 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onClose, onSendInpu
         <div className="mb-2">
           <p className="text-sm text-slate-300">
             {customerIdentity.age}岁，{customerIdentity.occupation}，{customerIdentity.personality.split(' ')[0]}
+          </p>
+        </div>
+      )}
+      
+      {/* 工作人员详细信息 */}
+      {(dialogue.role === Role.BARTENDER || dialogue.role === Role.WAITER || dialogue.role === Role.CLEANER) && dialogue.staffIdentity && (
+        <div className="mb-2">
+          <p className="text-sm text-slate-300">
+            {dialogue.staffIdentity.age}岁，{dialogue.staffIdentity.mbti}
           </p>
         </div>
       )}
@@ -301,8 +342,47 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onClose, onSendInpu
         </div>
       )}
       
+      {/* 工作人员对话内容区域 - 完全复刻顾客的显示方式 */}
+      {(dialogue.role === Role.BARTENDER || dialogue.role === Role.WAITER || dialogue.role === Role.CLEANER) && (
+        <div 
+          ref={storyAreaRef}
+          className="min-h-[80px] max-h-60 overflow-y-auto text-base leading-relaxed mb-4 text-white whitespace-pre-wrap custom-scrollbar"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#64748b #1e293b'
+          }}
+        >
+          {/* 显示历史对话 */}
+          {conversationHistory.map((msg, index) => (
+            <div key={index} className="mb-2">
+              {msg.role === 'user' ? (
+                <div className="flex justify-end pr-2">
+                  <span className="text-blue-300 italic font-medium inline-block max-w-[50%] text-right break-words">{msg.content}</span>
+                </div>
+              ) : (
+                <span>{msg.content}</span>
+              )}
+            </div>
+          ))}
+          
+          {/* 当前正在显示的内容 - 只在思考状态或正在打字时显示 */}
+          {dialogue.isThinking ? (
+            <div className="mb-2">
+              <span className="text-gray-400">思考中...</span>
+            </div>
+          ) : isTyping && displayedText ? (
+            <div className="mb-2">
+              <span>{displayedText}</span>
+            </div>
+          ) : null}
+        </div>
+      )}
+      
       {/* 其他角色文本内容区域 */}
-      {dialogue.role !== Role.CUSTOMER && (
+      {dialogue.role !== Role.CUSTOMER && 
+       dialogue.role !== Role.BARTENDER && 
+       dialogue.role !== Role.WAITER && 
+       dialogue.role !== Role.CLEANER && (
         <div className="min-h-[80px] text-lg leading-relaxed mb-4 font-serif whitespace-pre-wrap">
           {displayedText}
         </div>
@@ -481,6 +561,46 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({ dialogue, onClose, onSendInpu
                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded font-semibold transition-colors"
                >
                  天呐！圣诞老人真的存在！
+               </button>
+             </div>
+           ) : (dialogue.role === Role.BARTENDER || dialogue.role === Role.WAITER || dialogue.role === Role.CLEANER) ? (
+             /* 工作人员交互：显示输入框和发送按钮，第二轮后显示写诗按钮 */
+             <div className="flex gap-2 w-full">
+               {conversationHistory.length >= 2 && (
+                 <button 
+                   onClick={() => {
+                     if (buttonsDisabled) return;
+                     onSendInput("让我为你写首诗吧！");
+                   }}
+                   disabled={buttonsDisabled}
+                   className={`px-4 py-2 rounded text-sm transition-colors whitespace-nowrap ${
+                     buttonsDisabled 
+                       ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                       : 'bg-purple-600 hover:bg-purple-700 text-white'
+                   }`}
+                 >
+                   让我为你写首诗吧！
+                 </button>
+               )}
+               <input 
+                 type="text" 
+                 value={inputText}
+                 onChange={(e) => setInputText(e.target.value)}
+                 placeholder="和我聊聊天吧...（200字以内）"
+                 maxLength={200}
+                 className="flex-1 bg-slate-800 border border-slate-600 rounded px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
+                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+               />
+               <button 
+                 onClick={handleSend}
+                 disabled={!inputText.trim()}
+                 className={`px-6 py-2 rounded font-semibold transition-colors ${
+                   inputText.trim() 
+                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                 }`}
+               >
+                 发送
                </button>
              </div>
            ) : (

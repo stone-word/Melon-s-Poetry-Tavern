@@ -317,11 +317,70 @@ export class Renderer {
                         ctx.drawImage(sprite, drawX, drawY);
                     }
                     
-                    // 玩家阴影
+                    // 玩家增强阴影和波纹效果（在角色下方）
                     if (isPlayer) {
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                        const time = Date.now();
+                        const centerX = agent.pixelX + TILE_SIZE/2;
+                        const centerY = agent.pixelY + TILE_SIZE - 2;
+                        
+                        // 节奏性脉动（更快更明显）
+                        const rawPulse = Math.sin(time / 400); // 0.4秒一个周期
+                        const pulse = (rawPulse + 1) / 2; // 转换到0-1区间，避免负值
+                        
+                        // 检测是否处于上升阶段（只在上升时显示波纹）
+                        const lastPulse = ((Math.sin((time - 16.67) / 400) + 1) / 2); // 上一帧的pulse
+                        const isRising = pulse > lastPulse && pulse > 0.85; // 上升且高于0.85
+                        
+                        // 第一圈椭圆波纹效果（单向扩散，只在上升时显示）
+                        if (isRising) {
+                            const rippleProgress = (pulse - 0.85) / 0.15; // 0-1
+                            const rippleRadiusX = 30 + rippleProgress * 35; // 横向：30-65像素
+                            const rippleRadiusY = 15 + rippleProgress * 20; // 纵向：15-35像素
+                            const rippleAlpha = 0.5 * (1 - rippleProgress); // 渐隐
+                            
+                            ctx.strokeStyle = `rgba(255, 230, 150, ${rippleAlpha})`;
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.ellipse(centerX, centerY, rippleRadiusX, rippleRadiusY, 0, 0, Math.PI * 2);
+                            ctx.stroke();
+                            
+                            // 第二圈波纹（在第一圈接近最大值时出现）
+                            if (rippleProgress > 0.5) { // 第一圈扩散到一半时，第二圈开始出现
+                                const ripple2Progress = (rippleProgress - 0.5) / 0.5; // 0-1
+                                const ripple2RadiusX = 30 + ripple2Progress * 35;
+                                const ripple2RadiusY = 15 + ripple2Progress * 20;
+                                const ripple2Alpha = 0.4 * (1 - ripple2Progress);
+                                
+                                ctx.strokeStyle = `rgba(255, 230, 150, ${ripple2Alpha})`;
+                                ctx.lineWidth = 1.5;
+                                ctx.beginPath();
+                                ctx.ellipse(centerX, centerY, ripple2RadiusX, ripple2RadiusY, 0, 0, Math.PI * 2);
+                                ctx.stroke();
+                            }
+                        }
+                        
+                        // 主阴影（更明显的颜色和脉动）
+                        const shadowSize = 16 + pulse * 4; // 16-20像素
+                        const shadowAlpha = 0.3 + pulse * 0.25; // 0.3-0.55
+                        
+                        // 外圈柔和光晕
+                        const gradient = ctx.createRadialGradient(
+                            centerX, centerY, 0,
+                            centerX, centerY, shadowSize
+                        );
+                        gradient.addColorStop(0, `rgba(255, 230, 150, ${shadowAlpha})`);
+                        gradient.addColorStop(0.6, `rgba(255, 230, 150, ${shadowAlpha * 0.5})`);
+                        gradient.addColorStop(1, `rgba(255, 230, 150, 0)`);
+                        
+                        ctx.fillStyle = gradient;
                         ctx.beginPath();
-                        ctx.ellipse(agent.pixelX + TILE_SIZE/2, agent.pixelY + TILE_SIZE - 2, 8, 4, 0, 0, Math.PI*2);
+                        ctx.arc(centerX, centerY, shadowSize, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // 核心阴影椭圆
+                        ctx.fillStyle = `rgba(255, 240, 180, ${0.4 + pulse * 0.3})`;
+                        ctx.beginPath();
+                        ctx.ellipse(centerX, centerY, shadowSize * 0.75, shadowSize * 0.4, 0, 0, Math.PI*2);
                         ctx.fill();
                     }
                 } else {
@@ -424,6 +483,71 @@ export class Renderer {
      * 渲染玩家
      */
     renderPlayer = (ctx: CanvasRenderingContext2D, player: Agent): void => {
+        const time = Date.now();
+        const centerX = player.pixelX + TILE_SIZE/2;
+        const centerY = player.pixelY + TILE_SIZE - 2;
+        
+        // 节奏性脉动（更快更明显）
+        const rawPulse = Math.sin(time / 400); // 0.4秒一个周期
+        const pulse = (rawPulse + 1) / 2; // 转换到0-1区间，避免负值
+        
+        // 检测是否处于上升阶段（只在上升时显示波纹）
+        const lastPulse = ((Math.sin((time - 16.67) / 400) + 1) / 2); // 上一帧的pulse
+        const isRising = pulse > lastPulse && pulse > 0.85; // 上升且高于0.85
+        
+        // 第一圈椭圆波纹效果（单向扩散，只在上升时显示）
+        if (isRising) {
+            const rippleProgress = (pulse - 0.85) / 0.15; // 0-1
+            const rippleRadiusX = 30 + rippleProgress * 35; // 横向：30-65像素
+            const rippleRadiusY = 15 + rippleProgress * 20; // 纵向：15-35像素
+            const rippleAlpha = 0.5 * (1 - rippleProgress); // 渐隐
+            
+            ctx.strokeStyle = `rgba(255, 230, 150, ${rippleAlpha})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, rippleRadiusX, rippleRadiusY, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // 第二圈波纹（在第一圈接近最大值时出现）
+            if (rippleProgress > 0.5) { // 第一圈扩散到一半时，第二圈开始出现
+                const ripple2Progress = (rippleProgress - 0.5) / 0.5; // 0-1
+                const ripple2RadiusX = 30 + ripple2Progress * 35;
+                const ripple2RadiusY = 15 + ripple2Progress * 20;
+                const ripple2Alpha = 0.4 * (1 - ripple2Progress);
+                
+                ctx.strokeStyle = `rgba(255, 230, 150, ${ripple2Alpha})`;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.ellipse(centerX, centerY, ripple2RadiusX, ripple2RadiusY, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        
+        // 主阴影（更明显的颜色和脉动）
+        const shadowSize = 16 + pulse * 4; // 16-20像素
+        const shadowAlpha = 0.3 + pulse * 0.25; // 0.3-0.55
+        
+        // 外圈柔和光晕
+        const gradient = ctx.createRadialGradient(
+            centerX, centerY, 0,
+            centerX, centerY, shadowSize
+        );
+        gradient.addColorStop(0, `rgba(255, 230, 150, ${shadowAlpha})`);
+        gradient.addColorStop(0.6, `rgba(255, 230, 150, ${shadowAlpha * 0.5})`);
+        gradient.addColorStop(1, `rgba(255, 230, 150, 0)`);
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, shadowSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 核心阴影椭圆
+        ctx.fillStyle = `rgba(255, 240, 180, ${0.4 + pulse * 0.3})`;
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY, shadowSize * 0.75, shadowSize * 0.4, 0, 0, Math.PI*2);
+        ctx.fill();
+        
+        // 渲染角色本体（在阴影之上）
         const sprite = this.sprites[Role.PLAYER];
         if (sprite) {
             ctx.drawImage(sprite, player.pixelX, player.pixelY);
@@ -431,12 +555,6 @@ export class Renderer {
             ctx.fillStyle = player.color;
             ctx.fillRect(player.pixelX + 4, player.pixelY + 4, TILE_SIZE - 8, TILE_SIZE - 8);
         }
-        
-        // 玩家阴影
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.beginPath();
-        ctx.ellipse(player.pixelX + TILE_SIZE/2, player.pixelY + TILE_SIZE - 2, 8, 4, 0, 0, Math.PI*2);
-        ctx.fill();
     };
 
     /**
