@@ -86,6 +86,7 @@ services/
 ├── geminiService.ts    # 🧠 AI服务 - 与Google Gemini AI交互
 ├── poetryDatabase.ts   # 📖 诗歌数据库 - 管理诗歌内容
 ├── poemStorage.ts      # 💾 诗歌存储 - 本地+云端双重存储管理
+├── staffIdentities.ts  # 🧾 工作人员身份 - 固定工作人员配置
 ├── supabaseClient.ts   # ☁️ Supabase客户端 - 云数据库连接配置
 └── musicService.ts     # 🎵 音乐服务 - 背景音乐播放控制
 ```
@@ -97,6 +98,7 @@ services/
 - **poemStorage.ts**: 诗歌存储的"双重档案员"，管理本地存储（localStorage）和云端存储（Supabase）
 - **supabaseClient.ts**: Supabase云数据库的"连接器"，配置和初始化云端数据库客户端
 - **musicService.ts**: 背景音乐的"音响师"，控制游戏背景音乐的播放、暂停和音量
+- **staffIdentities.ts**: 工作人员的固定身份配置，定义调酒师、服务员、清洁工等固定角色信息，供 `GameCanvas.tsx` 分配与 `geminiService.ts` 在生成工作人员回复时使用
 
 ### 🛠️ 工具层 (`utils/`)
 
@@ -216,6 +218,17 @@ CustomerIdentity {
 
 这个系统让每个NPC都有独特的背景故事，AI可以根据这些信息生成个性化的对话。
 
+### 工作人员固定身份系统
+
+项目新增了一个“工作人员固定身份”模块，用于为酒馆内的员工（调酒师、服务员、清洁工）分配固定的身份信息。主要实现点：
+
+- 身份配置文件：`services/staffIdentities.ts`，包含已配置的调酒师、服务员与清洁工条目（如 Diego Ramos、薇薇、二胡、阿辉、小雨、小马哥、真雅、王阿姨）。
+- 类型扩展：在 `types.ts` 中添加了 `StaffIdentity` 类型，并在 `Agent` / `DialogueState` 等类型中加入 `staffIdentity` 字段以便传递上下文。
+- 分配与显示：`GameCanvas.tsx` 在创建或渲染工作人员时分配这些固定身份，`DialogueBox.tsx` 支持工作人员专用的 UI 显示（姓名、职务、简介）。
+- AI 配合：`geminiService.ts` 增加了 `generateStaffResponse()`（或类似名称）以基于工作人员身份和历史对话生成个性化回复。
+
+该系统让与工作人员的对话更具人物感与延续性，并支持后续为工作人员添加记忆、关系和特殊场景对话。
+
 **姓名显示系统**：
 
 - 对话框标题显示：**顾客X先生** / **顾客X女士**（根据性别自动选择称呼）
@@ -237,6 +250,7 @@ CustomerIdentity {
 5. **generatePoemEvaluation()** - 诗人对诗歌的评价
 6. **extractKeywordFromMood()** - 从心情中提取关键词
 7. **createNewPoemWithAI()** - AI创作新诗歌
+8. **generateStaffResponse()** - 基于 `StaffIdentity` 生成工作人员的个性化对话与回复
 
 ### AI提示词设计原则
 
@@ -542,4 +556,34 @@ A: 确认.env文件中的Supabase配置正确，检查网络连接，查看浏�
 
 ---
 
-*最后更新：2025年12月23日*
+### 2025年12月24日 - 工作人员固定身份系统上线
+
+**新增功能：**
+- 🧑‍🍳 **工作人员固定身份系统**：调酒师、服务员、清洁工等NPC拥有独特的姓名、性格、MBTI、家乡、背景故事等固定身份，提升角色真实感和代入感
+- 🗣️ **AI个性化对话**：与工作人员（调酒师/服务员/清洁工）对话时，AI会根据其身份、性格和故事生成专属回复，支持多轮交流
+- 🪪 **身份详情展示**：对话框中显示工作人员的年龄、MBTI等详细信息
+- 📝 **身份配置文件**：新增 `services/staffIdentities.ts`，集中管理所有工作人员身份信息
+
+**技术改进：**
+- 扩展 `types.ts`，新增 `StaffIdentity` 接口，`Agent` 和 `DialogueState` 增加 `staffIdentity` 字段
+- `GameCanvas.tsx` 为所有工作人员分配固定身份
+- `GameEngine.ts` 对话触发时传递身份信息，显示真实姓名
+- `geminiService.ts` 新增 `generateStaffResponse`，AI根据身份生成个性化回复
+- `App.tsx` 支持工作人员多轮对话和诗歌创作流程
+- `DialogueBox.tsx` 增强UI，专门适配工作人员身份与对话历史
+
+**NPC行为优化：**
+- 工作人员与玩家对话时会暂停移动，提升交互体验
+- 清洁工、调酒师、猫等NPC增加“随机停留”行为，行动更自然
+- 玩家初始位置调整，更便于体验
+- 玩家脚下新增脉动波纹与光晕特效，提升视觉表现
+
+**环境配置：**
+- `.env.example` 提供DeepSeek API Key示例，便于本地AI测试
+
+**文档补充：**
+- 新增《STAFF_IDENTITY_IMPLEMENTATION.md》详细说明工作人员身份系统的设计与用法
+
+---
+
+*最后更新：2025年12月24日*
